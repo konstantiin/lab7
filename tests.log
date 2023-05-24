@@ -1,0 +1,3 @@
+206  [main] INFO  server.main.Main - Server is running. Port 2322
+18554 [main] INFO  server.main.Main - Server command was found.
+18561 [main] INFO  server.main.Main - Command compiled

@@ -20,7 +20,9 @@ public class FilterContainsName extends Command {
     }
 
     @Override
-    public void setArgs(Reader from) {
+    public void setArgs(String user, Reader from) {
+
+        super.setArgs(user, from);
         name = from.readString();
     }
 

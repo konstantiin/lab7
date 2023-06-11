@@ -24,7 +24,6 @@ public class ObjectByteArrays {
             int j = min(i + packageSize, serialized.length);
             var length = j - i;
 
-
             var nextData = new byte[length];
             System.arraycopy(serialized, i, nextData, 0, length);
             data.add(nextData);
@@ -74,11 +73,14 @@ public class ObjectByteArrays {
         }
         index = 0;
         try (ObjectInput ObjIn = new ObjectInputStream(new ByteArrayInputStream(serialized))) {
-
             return ObjIn.readObject();
         } catch (ClassNotFoundException | IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public int len() {
+        return data.size();
     }
 
     public boolean addNext(byte[] arr) {

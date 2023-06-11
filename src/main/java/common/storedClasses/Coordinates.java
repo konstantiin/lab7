@@ -23,6 +23,14 @@ public class Coordinates implements Checkable, Serializable {
         this.y = y;
     }
 
+    public float getX() {
+        return this.x;
+    }
+
+    public long getY() {
+        return this.y;
+    }
+
     /**
      * returns Coordinates generator
      *

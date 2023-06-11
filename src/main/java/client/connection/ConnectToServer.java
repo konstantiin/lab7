@@ -60,8 +60,9 @@ public class ConnectToServer { // close scanner
             ByteBuffer buf = ByteBuffer.allocate(ObjectByteArrays.packageSize);
             SocketAddress res = null;
             var cur = LocalDateTime.now();
+
             while (res == null) {
-                if (LocalDateTime.now().getSecond() - cur.getSecond() > timeOutSec) {// странно
+                if (LocalDateTime.now().getSecond() - cur.getSecond() > timeOutSec) {
                     throw new IOException();
                 }
                 res = channel.receive(buf);
@@ -84,14 +85,14 @@ public class ConnectToServer { // close scanner
     private ObjectByteArrays receiveArrays(ObjectByteArrays data) {
         boolean work = true;
         while (work) {
-            work = data.addNext(receive());
+            work = data.addNext(this.receive());
         }
+
         return data;
     }
 
     public Object getResponse() {
         int size = ByteBuffer.wrap(this.receive()).getInt();
-
         var data = ObjectByteArrays.getEmpty(size);
         return this.receiveArrays(data).toObject();
     }

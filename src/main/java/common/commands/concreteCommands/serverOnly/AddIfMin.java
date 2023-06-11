@@ -14,14 +14,16 @@ public class AddIfMin extends Command {
     private Object arg;
 
     @Override
-    public void setArgs(Reader from) {
+    public void setArgs(String user, Reader from) {
+        super.setArgs(user, from);
+
         arg = from.readObject();
     }
 
 
     @Override
     public Object execute() {
-        if (collection.addIfMin(new HumanBeing((HumanBeingForm) arg))) {
+        if (collection.addIfMin(user, new HumanBeing((HumanBeingForm) arg))) {
             return "element added";
         } else return "element no added";
     }

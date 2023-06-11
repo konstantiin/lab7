@@ -18,7 +18,8 @@ public class Info extends Command implements Serializable {
     }
 
     @Override
-    public void setArgs(Reader from) {
+    public void setArgs(String user, Reader from) {
+        super.setArgs(user, from);
 
     }
 

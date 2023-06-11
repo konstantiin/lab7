@@ -1,10 +1,9 @@
 package server.launcher;
 
 
-import common.exceptions.inputExceptions.IdException;
 import common.storedClasses.Coordinates;
 import common.storedClasses.HumanBeing;
-import server.main.Main;
+import server.dataBase.DbConnection;
 
 import java.io.File;
 import java.util.*;
@@ -23,13 +22,22 @@ public class CommandsLauncher<T extends Comparable<T>> {
     /**
      * managed collection
      */
-    private final TreeSet<T> collection;
+    private final SortedSet<T> collection;
+    private final DbConnection psqlBase;
 
     /**
-     * @param collection - managed collection
+     * @param col - managed collection
      */
-    public CommandsLauncher(TreeSet<T> collection) {
-        this.collection = collection;
+    private CommandsLauncher(TreeSet<T> col, DbConnection Db) {
+
+        this.collection = Collections.synchronizedSortedSet(col);
+        this.psqlBase = Db;
+    }
+
+    public static CommandsLauncher<HumanBeing> getHumanBeingLauncher() {
+        var psqlBase = new DbConnection();
+        List<HumanBeing> col = psqlBase.readDb();
+        return new CommandsLauncher<>(new TreeSet<>(col), psqlBase);
     }
 
     /**
@@ -38,8 +46,11 @@ public class CommandsLauncher<T extends Comparable<T>> {
      * @param element - element to add
      */
     @SuppressWarnings("unchecked")
-    public Boolean add(Object element) {
-        return collection.add((T) element);
+    public Boolean add(String user, Object element) {
+        if (collection.contains((T) element)) return true;
+        var res = psqlBase.addElements(user, (HumanBeing) element);
+        if (res) collection.add((T) element);
+        return res;
     }
 
     /**
@@ -50,14 +61,13 @@ public class CommandsLauncher<T extends Comparable<T>> {
      */
     @SuppressWarnings("unchecked")
 
-    public boolean addIfMin(Object element) {
+    public Boolean addIfMin(String user, Object element) {
         T value = (T) element;
+        boolean res = false;
         if (value.compareTo(collection.first()) < 0) {
-            this.add(value);
-            return true;
+            res = this.add(user, value);
         }
-        return false;
-
+        return res;
     }
 
     /**
@@ -97,20 +107,31 @@ public class CommandsLauncher<T extends Comparable<T>> {
      * prints information about collection
      */
     public String info() {
-        return "TreeSet " + collection + " of size " + collection.size();// возможно стоит вывести еще какую-то информацию
+        return "TreeSet of size " + collection.size();
     }
 
     /**
      * Deletes element with given id
      *
      * @param id - element with this id will be removed
-     * @throws IdException - if element with id does not exist
      */
-    public void removeById(long id) throws IdException {
+    public Boolean removeById(String user, long id) {
         long c = collection.stream().filter(h -> ((HumanBeing) h).getId() == id).count();
-        if (c == 0) throw new IdException("Not valid id");
-        collection.stream().filter(h -> ((HumanBeing) h).getId() == id).forEach(collection::remove);
+        if (c == 0) return false;
+        var res = psqlBase.removeElements(user, id);
+        if (res) {
+            var l = collection.stream().filter(h -> ((HumanBeing) h).getId() == id).toArray();
+            Arrays.stream(l).forEach(collection::remove);
+        }
+        return res;
+    }
 
+    public Boolean register(String name, String password) {
+        return psqlBase.register(name, password);
+    }
+
+    public Boolean signUp(String name, String password) {
+        return psqlBase.signUp(name, password);
     }
 
     /**
@@ -120,12 +141,14 @@ public class CommandsLauncher<T extends Comparable<T>> {
      */
     @SuppressWarnings("unchecked")
 
-    public void removeLower(Object element) {
+    public Integer removeLower(String user, Object element) {
         T value = (T) element;
-        collection.stream().filter(h -> h.compareTo(value) < 0).forEach(h -> {
-            HumanBeing.ids.remove(((HumanBeing) h).getId());
-            collection.remove(h);
-        });
+        long[] ids = collection.stream().filter(h -> h.compareTo(value) < 0).mapToLong(h -> ((HumanBeing) h).getId()).toArray();
+        int count = 0;
+        for (var id : ids) {
+            if (this.removeById(user, id)) count += 1;
+        }
+        return count;
     }
 
     /**
@@ -135,13 +158,14 @@ public class CommandsLauncher<T extends Comparable<T>> {
      */
     @SuppressWarnings("unchecked")
 
-    public void removeGreater(Object element) {
+    public Integer removeGreater(String user, Object element) {
         T value = (T) element;
-        collection.stream().filter(h -> h.compareTo(value) > 0).forEach(h -> {
-            HumanBeing.ids.remove(((HumanBeing) h).getId());
-            collection.remove(h);
-        });
-
+        long[] ids = collection.stream().filter(h -> h.compareTo(value) > 0).mapToLong(h -> ((HumanBeing) h).getId()).toArray();
+        int count = 0;
+        for (var id : ids) {
+            if (this.removeById(user, id)) count += 1;
+        }
+        return count;
     }
 
     /**
@@ -154,7 +178,7 @@ public class CommandsLauncher<T extends Comparable<T>> {
     /**
      * @return sum of impactSpeed
      */
-    public double sumOfImpactSpeed() {
+    public Double sumOfImpactSpeed() {
         Float sum = (float) 0;
         final ArrayList<Float> arr = new ArrayList<>();
         collection.forEach((e) -> arr.add(((HumanBeing) e).getImpactSpeed()));
@@ -167,44 +191,41 @@ public class CommandsLauncher<T extends Comparable<T>> {
      *
      * @param id      element id
      * @param element new element
-     * @throws IdException - if element with id does not exist
      */
-    public void update(long id, Object element) throws IdException {
+    public Boolean update(String user, long id, Object element) {
         long c = collection.stream().filter(h -> ((HumanBeing) h).getId() == id).count();
-        if (c == 0) throw new IdException("Not valid id");
-        collection.stream().filter(h -> ((HumanBeing) h).getId() == id).forEach(h -> ((HumanBeing) h).update((HumanBeing) element));
-
+        if (c == 0) return false;
+        var res = psqlBase.update(user, id, (HumanBeing) element);
+        if (res)
+            collection.stream().filter(h -> ((HumanBeing) h).getId() == id).forEach(h -> ((HumanBeing) h).update((HumanBeing) element));
+        return res;
     }
 
     /**
      * clears collection
      */
-    public void clear() {
+    public Boolean clear() {
         HumanBeing.ids.clear();
-        collection.clear();
+        var res = psqlBase.clear();
+        if (res) collection.clear();
+        return res;
     }
 
     /**
      * saves collection
      */
-    @SuppressWarnings("unchecked")
-    public void save() {
-        Main.XMLInput.writeArr(new ArrayList<>((Collection<HumanBeing>) collection));
-    }
 
-    public boolean runServerCommand(String command) {
-        if (command.equals("save")) {
-            this.save();
-            System.out.println("Collection saved");
-            return true;
-        }
+    public Boolean runServerCommand(String command) {
         if (command.equals("interrupt")) {
-            this.save();
             System.out.println("Program interrupted");
             return false;
         }
 
         System.out.println("Unknown command.");
         return true;
+    }
+
+    public void close() {
+        psqlBase.closeConnection();
     }
 }

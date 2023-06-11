@@ -2,7 +2,6 @@ package common.commands.concreteCommands.serverOnly;
 
 import client.reading.readers.Reader;
 import common.commands.abstraction.Command;
-import common.exceptions.inputExceptions.IdException;
 
 import java.math.BigInteger;
 
@@ -16,16 +15,17 @@ public class RemoveById extends Command {
 
     @Override
     public Object execute() {
-        try {
-            collection.removeById(id);
+        if (collection.removeById(user, id)) {
             return "Element removed";
-        } catch (IdException e) {
-            return "Element with this id does not exist";
+        } else {
+            return "Element was not removed";
         }
     }
 
     @Override
-    public void setArgs(Reader from) {
+    public void setArgs(String user, Reader from) {
+        super.setArgs(user, from);
+
         id = from.readInt(BigInteger.ZERO, BigInteger.valueOf(Long.MAX_VALUE)).longValue();
     }
 

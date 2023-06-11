@@ -16,13 +16,18 @@ public class Add extends Command {
     private Object arg;
 
     @Override
-    public void setArgs(Reader from) {
+    public void setArgs(String user, Reader from) {
+        super.setArgs(user, from);
         arg = from.readObject();
     }
 
     @Override
     public Object execute() {
-        return collection.add(new HumanBeing((HumanBeingForm) arg));
+        if (collection.add(user, new HumanBeing((HumanBeingForm) arg))) {
+            return "Element added";
+        } else {
+            return "Element not added";
+        }
     }
 
     @Override

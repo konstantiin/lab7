@@ -17,12 +17,13 @@ public class RemoveGreater extends Command {
 
     @Override
     public Object execute() {
-        collection.removeGreater(new HumanBeing((HumanBeingForm) arg));
-        return "Elements removed";
+        return collection.removeGreater(user, new HumanBeing((HumanBeingForm) arg));
     }
 
     @Override
-    public void setArgs(Reader from) {
+    public void setArgs(String user, Reader from) {
+        super.setArgs(user, from);
+
         arg = from.readObject();
     }
 

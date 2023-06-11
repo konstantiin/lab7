@@ -1,3 +1,5 @@
 JavaDoc
 .idea
 target
+logs.log
+tests.log

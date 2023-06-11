@@ -19,9 +19,11 @@ public abstract class Command implements Serializable {
         return send;
     }
 
-    public void setCollection(CommandsLauncher<?> collect) {
+    synchronized public void setCollection(CommandsLauncher<?> collect) {
         collection = collect;
     }
+
+    protected String user;
 
 
     /**
@@ -32,7 +34,9 @@ public abstract class Command implements Serializable {
     /**
      * sets arguments
      */
-    public abstract void setArgs(Reader from);
+    public void setArgs(String user, Reader from) {
+        this.user = user;
+    }
 
     @Override
     public abstract String toString();

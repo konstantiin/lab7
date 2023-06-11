@@ -22,6 +22,14 @@ public class Car implements Checkable, Serializable {
         this.cool = cool;
     }
 
+    public Boolean getCool() {
+        return cool;
+    }
+
+    public String getName() {
+        return name;
+    }
+
     /**
      * returns Car Generator
      *

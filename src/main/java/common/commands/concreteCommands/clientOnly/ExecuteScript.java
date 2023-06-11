@@ -10,8 +10,9 @@ import common.exceptions.inputExceptions.UnknownCommandException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
-import static client.App.console;
 import static client.App.server;
 import static server.launcher.CommandsLauncher.currentScripts;
 
@@ -22,13 +23,15 @@ public class ExecuteScript extends Command {
     private File script;
     private OfflineReader offlineReader;
     private boolean isOk = true;
+    private static final Deque<Command> currentCms = new ArrayDeque<>();
 
     public ExecuteScript() {
         send = false;
     }
 
     @Override
-    public void setArgs(Reader from) {
+    public void setArgs(String user, Reader from) {
+        super.setArgs(user, from);
         script = new File(from.readString());
         if (currentScripts.contains(script)) {
             System.out.println("Script is already compiling. Command " + this + " was skipped");
@@ -64,15 +67,8 @@ public class ExecuteScript extends Command {
             try {
                 assert met != null;
                 if (met.ifSend()) {
-                    try {
-                        server.sendCommand(met);
-                        System.out.println(server.getResponse());
-                    } catch (Exception e) {
-                        System.out.println("Execution ended");
-                        offlineReader.closeStream();
-                        console.closeStream();
-                    }
-
+                    server.sendCommand(met);
+                    System.out.println(server.getResponse());
                 } else {
                     met.execute();
                 }
@@ -81,7 +77,6 @@ public class ExecuteScript extends Command {
                 offlineReader.skipTillNextCommand();
             }
         }
-
         offlineReader.closeStream();
         currentScripts.remove(script);
         return "Script " + script + " has compiled";

@@ -12,6 +12,7 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class ConnectToClient {
@@ -21,11 +22,12 @@ public class ConnectToClient {
 
 
     private final Map<SocketAddress, ObjectByteArrays> currentInput = new HashMap<>();
-    private final Map<SocketAddress, ObjectByteArrays> answerToClient = new HashMap<>();
+    private final Map<SocketAddress, ObjectByteArrays> answerToClient = new ConcurrentHashMap<>();
 
     private final Map<SocketAddress, Boolean> needConfirm = new HashMap<>();
+    private final Map<SocketAddress, SelectionKey> keysAndClients = new ConcurrentHashMap<>();
 
-    public void setAnswer(SocketAddress client, ObjectByteArrays data) {
+    synchronized public void setAnswer(SocketAddress client, ObjectByteArrays data) {
         answerToClient.put(client, data);
     }
 
@@ -88,11 +90,7 @@ public class ConnectToClient {
             return;
 
         }
-        try {
-            datagramChannel.register(selector, SelectionKey.OP_WRITE);
-        } catch (ClosedChannelException e) {
-            throw new RuntimeException(e);
-        }
+        regWrite(client);
     }
 
     public void read(SelectionKey key) {
@@ -107,6 +105,7 @@ public class ConnectToClient {
         buf.flip();
         byte[] in = new byte[buf.remaining()];
         buf.get(in);
+        keysAndClients.put(client, key);
         if (needConfirm.containsKey(client) && needConfirm.get(client)) {
             isConfirmed(in, client, datagramChannel);
             key.attach(client);
@@ -116,11 +115,7 @@ public class ConnectToClient {
             boolean ifReady = !currentInput.get(client).addNext(in);
             if (ifReady) {
                 complete.add(client);
-                try {
-                    datagramChannel.register(selector, SelectionKey.OP_WRITE);
-                } catch (ClosedChannelException e) {
-                    throw new RuntimeException(e);
-                }
+                key.interestOps(0);
             }
         } else {
             currentInput.put(client, ObjectByteArrays.getEmpty(ByteBuffer.wrap(in).getInt()));
@@ -129,8 +124,18 @@ public class ConnectToClient {
         key.attach(client);
     }
 
+    synchronized public void regWrite(SocketAddress addr) {
+        try {
+            keysAndClients.get(addr).channel().register(selector, SelectionKey.OP_WRITE);
+            keysAndClients.get(addr).attach(addr);
+        } catch (ClosedChannelException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static void readAll(ConnectToClient server) {
         var keys = server.getKeys();
+        if (keys.size() > 2) System.out.println(keys.size());
         for (var iter = keys.iterator(); iter.hasNext(); ) {
             var key = iter.next();
             iter.remove();
@@ -139,6 +144,7 @@ public class ConnectToClient {
                 try {
                     server.read(key);
                 } catch (Exception e) {
+                    e.printStackTrace();
                     logger.error("While reading from client:" + e.getMessage());
 
                 }
@@ -147,6 +153,7 @@ public class ConnectToClient {
     }
 
     public void write(SelectionKey key) {
+
         var client = (SocketAddress) key.attachment();
         var datagramChannel = (DatagramChannel) key.channel();
         var data = answerToClient.get(client);
@@ -169,6 +176,7 @@ public class ConnectToClient {
         } catch (ClosedChannelException e) {
             throw new RuntimeException(e);
         }
+
     }
 
     public static void writeAll(ConnectToClient server) {
@@ -180,7 +188,8 @@ public class ConnectToClient {
                 try {
                     server.write(key);
                 } catch (Exception e) {
-                    logger.error("While writing to   client:" + e.getMessage());
+                    //e.printStackTrace();
+                    logger.error("While writing to client:" + e.getMessage());
                 }
             }
         }

@@ -1,5 +1,6 @@
 package client.reading.readers;
 
+import client.App;
 import client.reading.objectTree.Node;
 import common.commands.abstraction.Command;
 import common.commands.concreteCommands.clientOnly.ExecuteScript;
@@ -266,7 +267,7 @@ public abstract class Reader {
         if (command == null) {
             throw new UnknownCommandException(metName);
         }
-        command.setArgs(this);
+        command.setArgs(App.user, this);
         return command;
     }
 

@@ -1,32 +1,30 @@
 package common.commands.concreteCommands.serverOnly;
 
-
 import client.reading.readers.Reader;
 import common.commands.abstraction.Command;
 
-import static server.launcher.CommandsLauncher.currentScripts;
+public class Register extends Command {
+    private final String name, password;
 
-/**
- * show command
- */
-public class Show extends Command {
+    public Register(String n, String pass) {
+        this.name = n;
+        this.password = pass;
+    }
+
     @Override
     public Object execute() {
-        return collection.show();
+        return collection.register(name, password);
     }
 
     @Override
     public void setArgs(String user, Reader from) {
         super.setArgs(user, from);
 
+        // do nothing
     }
 
     @Override
     public String toString() {
-        String res = "show";
-        if (currentScripts.size() != 0) {
-            res += "(in " + currentScripts.get(currentScripts.size() - 1) + " script)";
-        }
-        return res;
+        return "Register " + name + " " + password;
     }
 }

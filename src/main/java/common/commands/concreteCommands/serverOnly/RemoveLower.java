@@ -18,12 +18,13 @@ public class RemoveLower extends Command implements Serializable {
 
     @Override
     public Object execute() {
-        collection.removeLower(new HumanBeing((HumanBeingForm) arg));
-        return "Elements removed";
+        return collection.removeLower(user, new HumanBeing((HumanBeingForm) arg));
     }
 
     @Override
-    public void setArgs(Reader from) {
+    public void setArgs(String user, Reader from) {
+        super.setArgs(user, from);
+
         arg = from.readObject();
     }
 

@@ -2,7 +2,6 @@ package common.commands.concreteCommands.serverOnly;
 
 import client.reading.readers.Reader;
 import common.commands.abstraction.Command;
-import common.exceptions.inputExceptions.IdException;
 import common.storedClasses.HumanBeing;
 import common.storedClasses.forms.HumanBeingForm;
 
@@ -19,16 +18,17 @@ public class Update extends Command {
 
     @Override
     public Object execute() {
-        try {
-            collection.update(id, new HumanBeing((HumanBeingForm) arg));
+        if (collection.update(user, id, new HumanBeing((HumanBeingForm) arg))) {
             return "Element updated";
-        } catch (IdException e) {
-            return "Id not found";
+        } else {
+            return "Element was not updated";
         }
     }
 
     @Override
-    public void setArgs(Reader from) {
+    public void setArgs(String user, Reader from) {
+        super.setArgs(user, from);
+
         id = from.readInt(BigInteger.ZERO, BigInteger.valueOf(Integer.MAX_VALUE)).longValue();
         arg = from.readObject();
     }
